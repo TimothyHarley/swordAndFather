@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using SwordAndFather.Data;
 using SwordAndFather.Models;
 
 namespace SwordAndFather.Controllers
@@ -14,18 +15,29 @@ namespace SwordAndFather.Controllers
     // They're not there for us; they're there as metadata for the interwebs
     public class UsersController : ControllerBase
     {
-        static List<User> _users = new List<User>();
+        readonly UserRepository _userRepository;
+        readonly CreateUserRequestValidator _validator;
+
+        public UsersController()
+        {
+            _validator = new CreateUserRequestValidator();
+            _userRepository = new UserRepository();
+        }
 
         [HttpPost("register")]
-        public int AddUser(string username, string password)
+        public ActionResult<int> AddUser(CreateUserRequest createRequest)
         {
-            var newUser = new User(username, password);
 
-            newUser.Id = _users.Count + 1;
+            if (!_validator.Validate(createRequest))
+            {
+                return BadRequest(new { error = "users must have a username and password" });
+            }
 
-            _users.Add(newUser);
+            var userRepository = new UserRepository();
+            var newUser = _userRepository.AddUser(createRequest.Username, createRequest.Password);
 
-            return newUser.Id;
+            //http response
+            return Created($"api/users/{newUser.Id}", newUser);
         }
 
     }
