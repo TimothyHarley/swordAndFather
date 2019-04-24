@@ -40,5 +40,12 @@ namespace SwordAndFather.Controllers
             return Created($"api/users/{newUser.Id}", newUser);
         }
 
+        [HttpGet]
+        public ActionResult GetAllUsers()
+        {
+            var users = _userRepository.GetAll();
+            return Ok(users);
+        }
+
     }
 }
