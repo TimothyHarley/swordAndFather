@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Data.SqlClient;
+using Dapper;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -25,6 +26,18 @@ namespace SwordAndFather.Data
 
             using (var connection = new SqlConnection(ConnectionString)) //the using statement makes this connection close at the end of the code block
             {
+
+                 var newUser = connection.QueryFirstOrDefault<User>(@"Insert into users (username, password)
+                                                        Output inserted.*
+                                                        Values(@username,@password)", 
+                     new { Username = username, Password = password /* is the same as {username, password} */ } );
+
+                if (newUser != null)
+                {
+                    return newUser;
+                }
+
+                /*
 
                 connection.Open();
 
@@ -51,45 +64,76 @@ namespace SwordAndFather.Data
 
                     return newUser;
                 }
+
+                */
             }
 
             throw new Exception("No user found");
 
         }
 
-
-
-
-
-        public List<User> GetAll()
+        public void DeleteUser(int id)
         {
-            var users = new List<User>();
-
-            var connection = new SqlConnection(ConnectionString);
-
-            connection.Open();
-
-            var getAllUsersCommand = connection.CreateCommand();
-
-            getAllUsersCommand.CommandText = @"select username,password,id
-                                              from users";
-
-            var reader = getAllUsersCommand.ExecuteReader();
-
-            while (reader.Read()) //reader.Read is a bool that checks to see if there is any data left
+            using (var db = new SqlConnection(ConnectionString))
             {
-                // reader[0]  -this returns an object?
-                var id = (int)reader["id"];
-                var username = reader["username"].ToString();
-                var password = reader["password"].ToString();
-                var user = new User(username, password) { Id = id };
+               var rowsAffected = db.Execute("Delete from Users where Id = @id", new { id }); //that's it.
 
-                users.Add(user);
+               if (rowsAffected != 1)
+                {
+                    throw new Exception("Didn't do right");
+                }
+            }
+        }
+
+        public User UpdateUser(User userToUpdate)
+        {
+            using (var db = new SqlConnection(ConnectionString))
+            {
+                db.Execute(@"Update Users 
+                             Set username = @username,
+                                 password = @password
+                             Where id = @id", userToUpdate);
+
+                return userToUpdate;
             }
 
-            connection.Close();
 
-            return users;
+        }
+
+        public IEnumerable<User> GetAll()
+        {
+
+            using (var db = new SqlConnection(ConnectionString))
+            {
+
+                //db.Open();  dapper auto opens the connection, and the using statement will close it when the block of code is done.
+
+                return db.Query<User>("select username,password,id from users"); //This is all that's left when we use Dapper.  This is a little slower to run because of the ORM that runs it.
+
+                /*
+                 
+                var getAllUsersCommand = connection.CreateCommand();
+
+                getAllUsersCommand.CommandText = @"select username,password,id
+                                              from users";
+
+                var reader = getAllUsersCommand.ExecuteReader();
+
+                while (reader.Read()) //reader.Read is a bool that checks to see if there is any data left
+                {
+                    // reader[0]  -this returns an object?
+                    var id = (int)reader["id"];
+                    var username = reader["username"].ToString();
+                    var password = reader["password"].ToString();
+                    var user = new User(username, password) { Id = id };
+
+                    users.Add(user);
+                }
+
+               */
+
+            }
+
         }
 
     }
