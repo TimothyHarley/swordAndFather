@@ -92,7 +92,7 @@ namespace SwordAndFather.Data
                 db.Execute(@"Update Users 
                              Set username = @username,
                                  password = @password
-                             Where id = @id", userToUpdate);
+                             Where id = @id", userToUpdate); 
 
                 return userToUpdate;
             }
